@@ -1,5 +1,5 @@
 import streamlit as st
-import google.generativeai as genai
+from google import genai
 import os
 
 # Page Configuration
@@ -32,7 +32,7 @@ api_key = st.secrets.get("GEMINI_API_KEY", os.getenv("GEMINI_API_KEY"))
 if not api_key:
     st.error("⚠️ Please enter your Gemini API Key in Streamlit Secrets!")
 else:
-    genai.configure(api_key=api_key)
+    client = genai.Client(api_key=api_key)
     
     # UI Interface
     st.header("💬 Ask AI Surgical Assistant")
@@ -59,32 +59,17 @@ else:
     if st.button("Ask Assistant", type="primary"):
         if user_query:
             with st.spinner("Analyzing clinical request..."):
-                # Try recommended Gemini 2.5/2.0 models first
-                models_to_try = [
-                    'gemini-2.5-flash',
-                    'gemini-2.0-flash',
-                    'gemini-1.5-flash-8b'
-                ]
-                
-                response_text = None
-                last_error = None
-
-                for model_name in models_to_try:
-                    try:
-                        model = genai.GenerativeModel(model_name)
-                        full_prompt = f"{SYSTEM_PROMPT}\n\nUser Question: {user_query}"
-                        res = model.generate_content(full_prompt)
-                        response_text = res.text
-                        break
-                    except Exception as e:
-                        last_error = e
-                        continue
-
-                if response_text:
+                try:
+                    full_prompt = f"{SYSTEM_PROMPT}\n\nUser Question: {user_query}"
+                    response = client.models.generate_content(
+                        model='gemini-2.5-flash',
+                        contents=full_prompt,
+                    )
+                    
                     st.markdown("---")
                     st.subheader("💡 Assistant Response:")
-                    st.write(response_text)
-                else:
-                    st.error(f"Error connecting to AI service: {last_error}")
+                    st.write(response.text)
+                except Exception as e:
+                    st.error(f"Error connecting to AI service: {e}")
         else:
             st.warning("Please enter a query or select a preset option above.")
