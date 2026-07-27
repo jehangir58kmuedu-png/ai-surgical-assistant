@@ -60,34 +60,47 @@ else:
         if user_query:
             with st.spinner("Analyzing clinical request..."):
                 try:
-                    # Auto-detect available active model for your API key
-                    available_models = [
-                        m.name for m in genai.list_models() 
-                        if 'generateContent' in m.supported_generation_methods
+                    # Dynamically list models available for this API Key
+                    valid_models = []
+                    for m in genai.list_models():
+                        if 'generateContent' in m.supported_generation_methods:
+                            valid_models.append(m.name)
+                    
+                    # Preference order for stable models
+                    preferred_order = [
+                        'models/gemini-2.0-flash',
+                        'models/gemini-2.0-flash-lite',
+                        'models/gemini-1.5-pro'
                     ]
                     
-                    # Select best available model
-                    selected_model = None
-                    for m in available_models:
-                        if 'flash' in m:
-                            selected_model = m
+                    chosen_model = None
+                    for pref in preferred_order:
+                        if pref in valid_models:
+                            chosen_model = pref
                             break
-                    if not selected_model and available_models:
-                        selected_model = available_models[0]
+                    
+                    # Fallback to any active flash model or first available model
+                    if not chosen_model:
+                        for m_name in valid_models:
+                            if 'flash' in m_name:
+                                chosen_model = m_name
+                                break
+                    if not chosen_model and valid_models:
+                        chosen_model = valid_models[0]
 
-                    if selected_model:
-                        model = genai.GenerativeModel(selected_model)
+                    if not chosen_model:
+                        st.error("No active Gemini model found for this API Key.")
+                    else:
+                        model = genai.GenerativeModel(chosen_model)
                         full_prompt = f"{SYSTEM_PROMPT}\n\nUser Question: {user_query}"
                         response = model.generate_content(full_prompt)
                         
                         st.markdown("---")
                         st.subheader("💡 Assistant Response:")
                         st.write(response.text)
-                    else:
-                        st.error("No compatible Gemini model found for this API Key.")
 
                 except Exception as e:
                     st.error(f"Error connecting to AI service: {e}")
         else:
             st.warning("Please enter a query or select a preset option above.")
-                    
+            
