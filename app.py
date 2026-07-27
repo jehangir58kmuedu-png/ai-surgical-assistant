@@ -60,26 +60,34 @@ else:
         if user_query:
             with st.spinner("Analyzing clinical request..."):
                 try:
-                    # Using Gemini 2.0 Flash model
-                    model = genai.GenerativeModel('gemini-2.0-flash')
-                    full_prompt = f"{SYSTEM_PROMPT}\n\nUser Question: {user_query}"
-                    response = model.generate_content(full_prompt)
+                    # Auto-detect available active model for your API key
+                    available_models = [
+                        m.name for m in genai.list_models() 
+                        if 'generateContent' in m.supported_generation_methods
+                    ]
                     
-                    st.markdown("---")
-                    st.subheader("💡 Assistant Response:")
-                    st.write(response.text)
-                except Exception as e:
-                    try:
-                        # Fallback Model
-                        model = genai.GenerativeModel('gemini-1.5-flash')
+                    # Select best available model
+                    selected_model = None
+                    for m in available_models:
+                        if 'flash' in m:
+                            selected_model = m
+                            break
+                    if not selected_model and available_models:
+                        selected_model = available_models[0]
+
+                    if selected_model:
+                        model = genai.GenerativeModel(selected_model)
                         full_prompt = f"{SYSTEM_PROMPT}\n\nUser Question: {user_query}"
                         response = model.generate_content(full_prompt)
                         
                         st.markdown("---")
                         st.subheader("💡 Assistant Response:")
                         st.write(response.text)
-                    except Exception as err:
-                        st.error(f"Error connecting to AI service: {err}")
+                    else:
+                        st.error("No compatible Gemini model found for this API Key.")
+
+                except Exception as e:
+                    st.error(f"Error connecting to AI service: {e}")
         else:
             st.warning("Please enter a query or select a preset option above.")
-  
+                    
