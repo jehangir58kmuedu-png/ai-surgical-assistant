@@ -59,26 +59,32 @@ else:
     if st.button("Ask Assistant", type="primary"):
         if user_query:
             with st.spinner("Analyzing clinical request..."):
-                try:
-                    # Model configuration using gemini-1.5-flash
-                    model = genai.GenerativeModel('gemini-1.5-flash')
-                    full_prompt = f"{SYSTEM_PROMPT}\n\nUser Question: {user_query}"
-                    response = model.generate_content(full_prompt)
-                    
+                # Try recommended Gemini 2.5/2.0 models first
+                models_to_try = [
+                    'gemini-2.5-flash',
+                    'gemini-2.0-flash',
+                    'gemini-1.5-flash-8b'
+                ]
+                
+                response_text = None
+                last_error = None
+
+                for model_name in models_to_try:
+                    try:
+                        model = genai.GenerativeModel(model_name)
+                        full_prompt = f"{SYSTEM_PROMPT}\n\nUser Question: {user_query}"
+                        res = model.generate_content(full_prompt)
+                        response_text = res.text
+                        break
+                    except Exception as e:
+                        last_error = e
+                        continue
+
+                if response_text:
                     st.markdown("---")
                     st.subheader("💡 Assistant Response:")
-                    st.write(response.text)
-                except Exception as e:
-                    # Fallback model in case primary endpoint differs
-                    try:
-                        model = genai.GenerativeModel('gemini-1.5-flash-latest')
-                        full_prompt = f"{SYSTEM_PROMPT}\n\nUser Question: {user_query}"
-                        response = model.generate_content(full_prompt)
-                        
-                        st.markdown("---")
-                        st.subheader("💡 Assistant Response:")
-                        st.write(response.text)
-                    except Exception as fallback_error:
-                        st.error(f"Error connecting to AI service: {fallback_error}")
+                    st.write(response_text)
+                else:
+                    st.error(f"Error connecting to AI service: {last_error}")
         else:
             st.warning("Please enter a query or select a preset option above.")
