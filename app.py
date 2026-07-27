@@ -15,16 +15,7 @@ st.markdown("### Smart Clinical & Surgical Technology Guidance System")
 st.write("An intelligent assistant designed for Surgical Technologists, Operating Theater (OT) staff, and healthcare professionals.")
 
 # System Prompt
-SYSTEM_PROMPT = """
-You are 'AI Surgical Assistant', an expert AI designed specifically to guide Surgical Technologists and OT staff.
-Your task is to provide accurate, concise, and highly relevant clinical information.
-
-Guidelines:
-1. Provide clear, structured, step-by-step guidance.
-2. Detail pre-operative, intra-operative, and post-operative procedures accurately.
-3. Always include relevant safety precautions, infection control measures, and instrument specifics.
-4. Maintain a professional, helpful, and concise tone.
-"""
+SYSTEM_PROMPT = """You are 'AI Surgical Assistant', an expert AI designed specifically to guide Surgical Technologists and OT staff. Your task is to provide accurate, concise, and highly relevant clinical information."""
 
 # Get API Key from Secrets or Environment
 api_key = st.secrets.get("GEMINI_API_KEY", os.getenv("GEMINI_API_KEY"))
@@ -60,42 +51,21 @@ else:
         if user_query:
             with st.spinner("Analyzing clinical request..."):
                 try:
-                    # Dynamically get active models for this API Key
-                    active_models = []
-                    for m in genai.list_models():
-                        if 'generateContent' in m.supported_generation_methods:
-                            active_models.append(m.name)
-
-                    # List of stable models to attempt in order
-                    target_models = [
-                        'models/gemini-2.5-flash',
-                        'models/gemini-1.5-flash',
-                        'models/gemini-1.5-pro'
-                    ]
-
-                    chosen_model = None
-                    for tm in target_models:
-                        if tm in active_models:
-                            chosen_model = tm
-                            break
-
-                    # Fallback to any model in active list if specific match not found
-                    if not chosen_model and active_models:
-                        chosen_model = active_models[0]
-
-                    if not chosen_model:
-                        st.error("No active Gemini models found for this API key.")
-                    else:
-                        model = genai.GenerativeModel(chosen_model)
-                        full_prompt = f"{SYSTEM_PROMPT}\n\nUser Question: {user_query}"
-                        response = model.generate_content(full_prompt)
-                        
-                        st.markdown("---")
-                        st.subheader("💡 Assistant Response:")
-                        st.write(response.text)
-
+                    # Dynamically list models available for this API key
+                    available = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+                    
+                    # Auto select best active model
+                    target_model = available[0] if available else 'models/gemini-1.5-flash'
+                    
+                    model = genai.GenerativeModel(target_model)
+                    full_prompt = f"{SYSTEM_PROMPT}\n\nUser Question: {user_query}"
+                    response = model.generate_content(full_prompt)
+                    
+                    st.markdown("---")
+                    st.subheader("💡 Assistant Response:")
+                    st.write(response.text)
                 except Exception as e:
                     st.error(f"Error connecting to AI service: {e}")
         else:
             st.warning("Please enter a query or select a preset option above.")
-        '
+    
