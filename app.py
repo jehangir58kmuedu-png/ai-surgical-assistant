@@ -1,4 +1,4 @@
-  import streamlit as st
+import streamlit as st
 import google.generativeai as genai
 import os
 
@@ -60,7 +60,7 @@ else:
         if user_query:
             with st.spinner("Analyzing clinical request..."):
                 try:
-                    # Gemini 2.0 Flash Model
+                    # Using Gemini 2.0 Flash model
                     model = genai.GenerativeModel('gemini-2.0-flash')
                     full_prompt = f"{SYSTEM_PROMPT}\n\nUser Question: {user_query}"
                     response = model.generate_content(full_prompt)
@@ -70,7 +70,7 @@ else:
                     st.write(response.text)
                 except Exception as e:
                     try:
-                        # Fallback Model 1.5 Flash
+                        # Fallback Model
                         model = genai.GenerativeModel('gemini-1.5-flash')
                         full_prompt = f"{SYSTEM_PROMPT}\n\nUser Question: {user_query}"
                         response = model.generate_content(full_prompt)
@@ -82,4 +82,4 @@ else:
                         st.error(f"Error connecting to AI service: {err}")
         else:
             st.warning("Please enter a query or select a preset option above.")
-       
+  
