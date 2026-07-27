@@ -1,5 +1,5 @@
-import streamlit as st
-from google import genai
+  import streamlit as st
+import google.generativeai as genai
 import os
 
 # Page Configuration
@@ -32,7 +32,7 @@ api_key = st.secrets.get("GEMINI_API_KEY", os.getenv("GEMINI_API_KEY"))
 if not api_key:
     st.error("⚠️ Please enter your Gemini API Key in Streamlit Secrets!")
 else:
-    client = genai.Client(api_key=api_key)
+    genai.configure(api_key=api_key)
     
     # UI Interface
     st.header("💬 Ask AI Surgical Assistant")
@@ -60,16 +60,26 @@ else:
         if user_query:
             with st.spinner("Analyzing clinical request..."):
                 try:
+                    # Gemini 2.0 Flash Model
+                    model = genai.GenerativeModel('gemini-2.0-flash')
                     full_prompt = f"{SYSTEM_PROMPT}\n\nUser Question: {user_query}"
-                    response = client.models.generate_content(
-                        model='gemini-2.5-flash',
-                        contents=full_prompt,
-                    )
+                    response = model.generate_content(full_prompt)
                     
                     st.markdown("---")
                     st.subheader("💡 Assistant Response:")
                     st.write(response.text)
                 except Exception as e:
-                    st.error(f"Error connecting to AI service: {e}")
+                    try:
+                        # Fallback Model 1.5 Flash
+                        model = genai.GenerativeModel('gemini-1.5-flash')
+                        full_prompt = f"{SYSTEM_PROMPT}\n\nUser Question: {user_query}"
+                        response = model.generate_content(full_prompt)
+                        
+                        st.markdown("---")
+                        st.subheader("💡 Assistant Response:")
+                        st.write(response.text)
+                    except Exception as err:
+                        st.error(f"Error connecting to AI service: {err}")
         else:
             st.warning("Please enter a query or select a preset option above.")
+       
