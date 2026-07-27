@@ -37,8 +37,13 @@ else:
         if user_query:
             with st.spinner("Analyzing clinical request..."):
                 try:
-                    # Direct active Gemini model name (avoiding retired models)
-                    model = genai.GenerativeModel('gemini-2.0-flash')
+                    # Dynamically get exact working model from your account
+                    models = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+                    
+                    # Choose active model automatically
+                    active_model = models[0] if models else 'gemini-2.0-flash'
+
+                    model = genai.GenerativeModel(active_model)
                     full_prompt = f"{SYSTEM_PROMPT}\n\nUser Question: {user_query}"
                     response = model.generate_content(full_prompt)
                     
@@ -46,15 +51,7 @@ else:
                     st.subheader("💡 Assistant Response:")
                     st.write(response.text)
                 except Exception as e:
-                    # Direct Fallback model
-                    try:
-                        model = genai.GenerativeModel('gemini-1.5-flash-8b')
-                        full_prompt = f"{SYSTEM_PROMPT}\n\nUser Question: {user_query}"
-                        response = model.generate_content(full_prompt)
-                        st.markdown("---")
-                        st.subheader("💡 Assistant Response:")
-                        st.write(response.text)
-                    except Exception as err:
-                        st.error(f"Error connecting to AI service: {err}")
+                    st.error(f"Error connecting to AI service: {e}")
         else:
-            st.warning("Please enter a query or select a preset option above.") 
+            st.warning("Please enter a query or select a preset option above.")
+            
